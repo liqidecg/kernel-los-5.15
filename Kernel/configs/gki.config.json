@@ -3,7 +3,7 @@
     "kernelSource": {
       "name": "android_kernel_5.15",
       "repo": "https://github.com/xiaomi-sm8550-devs/android_kernel_xiaomi_sm8550",
-      "branch": "android13-5.15-2025-05",
+      "branch": "lineage-23.2",
       "device": "vermeer_GKI",
       "defconfig": "vendor/vermeer_GKI.config"
     },

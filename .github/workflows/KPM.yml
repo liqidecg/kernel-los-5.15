@@ -113,7 +113,6 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            ${{ env.OUT_DIR }}
             ${{ env.CCACHE_DIR }}
           key: cache-${{ env.KERNEL_NAME }}-${{env.HASH}}-${{ env.BUILD_DATE }}
           restore-keys: |

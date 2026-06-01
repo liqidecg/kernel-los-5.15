@@ -359,8 +359,8 @@ jobs:
             git clone --recursive --depth=1 -j $(nproc) --branch $ANYKERNEL_BRANCH $ANYKERNEL_REPO AnyKernel3
             echo "🤔 Use custom AnyKernel3 => ($ANYKERNEL_REPO)"
           else
-            git clone --recursive --depth=1 -j $(nproc) https://github.com/WildPlusKernel/AnyKernel3 AnyKernel3
-            echo "🤔 Use WildPlus Anykernel3 => (https://github.com/WildPlusKernel/AnyKernel3)"
+            git clone --recursive --depth=1 -j $(nproc) https://github.com/osm0sis/AnyKernel3 AnyKernel3
+            echo "🤔 Use osm0sis AnyKernel3 => (https://github.com/osm0sis/AnyKernel3)"
           fi
           cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image ./AnyKernel3/
 

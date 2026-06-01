@@ -269,14 +269,23 @@ jobs:
       - name: 👍 Start building the kernel
         working-directory: ${{ env.KERNEL_NAME }}
         env:
+          ARCH: ${{ steps.generate-args.outputs.ARCH }}
           ARGS: ${{ steps.generate-args.outputs.ARGS }}
         run: |
           echo "🤔 PATH Variable: $PATH"
           export KBUILD_BUILD_TIMESTAMP="Wed Sep 17 00:00:00 UTC 2025"
           export KBUILD_BUILD_HOST=Github-Action
           export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
-          make ${{ env.ARGS }} ${{ env.KERNEL_DEFCONFIG_PATH }}
-          make ${{ env.ARGS }}
+          make ${{ env.ARGS }} gki_defconfig
+
+          scripts/kconfig/merge_config.sh -m -r -O "${{ env.OUT_DIR }}" \
+            "${{ env.OUT_DIR }}/.config" \
+            arch/${{ env.ARCH }}/configs/vendor/kalama_GKI.config \
+            arch/${{ env.ARCH }}/configs/vendor/vermeer_GKI.config
+
+          make ${{ env.ARGS }} olddefconfig
+          make ${{ env.ARGS }} Image
+
           # tree ${{ env.OUT_DIR }}
       - name: 💛 Upload Image
         uses: actions/upload-artifact@v6
@@ -354,21 +363,36 @@ jobs:
             git clone --recursive --depth=1 -j $(nproc) https://github.com/WildPlusKernel/AnyKernel3 AnyKernel3
             echo "🤔 Use WildPlus Anykernel3 => (https://github.com/WildPlusKernel/AnyKernel3)"
           fi
-          if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb" ]; then
-            cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb ./AnyKernel3/
-          else
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image ./AnyKernel3/
-            fi
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo ./AnyKernel3/
-            fi
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img ./AnyKernel3/
-            fi
-          fi
+          cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image ./AnyKernel3/
+
+          cat > ./AnyKernel3/anykernel.sh <<'EOF'
+          ### AnyKernel3 Ramdisk Mod Script
+
+          properties() { '
+          do.devicecheck=1
+          do.modules=0
+          do.systemless=1
+          do.cleanup=1
+          do.cleanuponabort=0
+          device.name1=vermeer
+          supported.versions=
+          supported.patchlevels=
+          supported.vendorpatchlevels=
+          ' ; }
+
+          block=boot
+          is_slot_device=auto
+          ramdisk_compression=auto
+          patch_vbmeta_flag=auto
+
+          . tools/ak3-core.sh
+          split_boot
+          flash_boot
+          EOF
+
           cd AnyKernel3/
-          zip -q -r "${{ env.ANYKERNEL3_FILE }}.zip" *
+          rm -rf .git out *.zip
+          zip -q -r "${{ env.ANYKERNEL3_FILE }}.zip" . -x '*/.git*' '*.zip'
       - name: "💾 Upload AnyKernel3 image => (${{ env.BUILD_DATE }})"
         env:
           ANYKERNEL3_FILE: "AnyKernel3-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}"
@@ -376,7 +400,7 @@ jobs:
         if: ${{ env.USE_ANYKERNEL3 == 'true' }}
         with:
           name: "${{ env.ANYKERNEL3_FILE }}"
-          path: AnyKernel3/*
+          path: "AnyKernel3-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}.zip"
 
       - name: 🧧 Create GitHub Release => (${{ env.BUILD_DATE }})
         env:

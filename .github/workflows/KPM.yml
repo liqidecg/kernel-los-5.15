@@ -239,9 +239,11 @@ jobs:
           patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch
           # Fix ReSukiSU API mismatch
           sed -i 's/ksu_selinux_hide_enabled/ksu_selinux_hide_enable/g' security/selinux/selinuxfs.c
-          # Remove obsolete fake_status hooks
-          sed -i '/fake_status/d' security/selinux/selinuxfs.c
+
+          # Fix old SUSFS symbols for ReSukiSU
+          sed -i 's/void \*data;/void *data = NULL;/' security/selinux/selinuxfs.c
           sed -i '/initialize_fake_status/d' security/selinux/selinuxfs.c
+          sed -i 's/fake_status/ksu_selinux_hide_enable/g' security/selinux/selinuxfs.c
           # Unicode_bypass_Fix
           cp ../kernel_patches/common/unicode_bypass_fix_6.1-.patch ./
           patch -p1 -F 3 < unicode_bypass_fix_6.1-.patch

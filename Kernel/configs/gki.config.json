@@ -2,7 +2,7 @@
   {
     "kernelSource": {
       "name": "android_kernel_5.15",
-      "repo": "https://github.com/AOSPA/android_kernel_xiaomi_sm8550",
+      "repo": "https://github.com/liqidecg/kernel_xiaomi_sm8550",
       "branch": "vauxite",
       "device": "vermeer_GKI",
       "defconfig": "vendor/vermeer_GKI.config"

@@ -83,6 +83,37 @@ jobs:
       - name: 😄 Checkout
         uses: actions/checkout@v5
 
+      # Free disk space for kernel build
+      - name: 🧹 Free disk space
+        run: |
+          echo "Before cleanup:"
+          df -h
+
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /opt/hostedtoolcache/go
+          sudo rm -rf /opt/hostedtoolcache/node
+          sudo rm -rf /opt/hostedtoolcache/Python
+          sudo rm -rf /opt/hostedtoolcache/Ruby
+          sudo rm -rf /opt/hostedtoolcache/PyPy
+          sudo rm -rf /opt/az
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/share/swift
+
+          docker system prune -af || true
+          sudo apt-get clean
+          sudo rm -rf /tmp/*
+          sudo rm -rf /var/tmp/*
+
+          echo "After cleanup:"
+          df -h
+
       # Install prerequisites for Ubuntu
       - name: ⭐ Install prerequisites
         run: |
@@ -258,6 +289,15 @@ jobs:
           sed -i '$s|echo "\$res"|echo "\$res-ab11001737"|' ./scripts/setlocalversion
           cat arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           
+      - name: 🩹 Fix Goodix FOD pinctrl include
+        working-directory: ${{ env.KERNEL_NAME }}
+        run: |
+          GF_SPI="drivers/input/fingerprint/goodix_fod/gf_spi.c"
+
+          if [ -f "$GF_SPI" ] && ! grep -q "linux/pinctrl/consumer.h" "$GF_SPI"; then
+            sed -i '1i #include <linux/pinctrl/consumer.h>' "$GF_SPI"
+          fi
+
       - name: 🧹 Commit to avoid dirty
         working-directory: ${{ env.KERNEL_NAME }}
         run: |

@@ -4,8 +4,12 @@
       "name": "android_kernel_5.15",
       "repo": "https://github.com/LineageOS/android_kernel_xiaomi_sm8550",
       "branch": "lineage-23.2",
-      "device": "vermeer_GKI",
-      "defconfig": "vendor/vermeer_GKI.config"
+      "device": "vermeer",
+      "defconfig": "gki_defconfig",
+      "fragments": [
+        "vendor/kalama_GKI.config",
+        "vendor/vermeer_GKI.config"
+      ]
     },
     "toolchains": [
       {

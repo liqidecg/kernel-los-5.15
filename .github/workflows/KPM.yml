@@ -220,7 +220,7 @@ jobs:
             rm -rf "./drivers/kernelsu"
           fi
           # Apply new KernelSU patches
-          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s main
+          curl -LSs "https://raw.githubusercontent.com/anotheranhiutangerine/KittiSU/main/kernel/setup.sh" | bash
           
       - name: 😋 Setup KSU SUSFS
         env: 

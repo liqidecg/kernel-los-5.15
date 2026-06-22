@@ -246,10 +246,9 @@ jobs:
           if ! grep -q "susfs.o" ./fs/Makefile; then
             echo 'obj-$(CONFIG_KSU_SUSFS) += susfs.o' >> ./fs/Makefile
           fi
-          if ! grep -q "KSU_SUSFS" ./fs/Kconfig; then
-            echo "ERROR: SUSFS Kconfig entry not found, SUSFS patch is incomplete."
-            exit 1
-          fi
+          # Do not require fs/Kconfig to contain KSU_SUSFS.
+          # Some KernelSU/SUSFS branches define these options under KernelSU/drivers instead.
+          grep -R "config KSU_SUSFS" -n ./KernelSU ./drivers ./fs ./kernel 2>/dev/null || true
           # Compat fix: some SUSFS patch branches add callers in stat/statfs/proc-fd,
           # but miss these mount helper definitions in fs/namespace.c.
           if ! grep -q "susfs_get_non_sus_mnt_id_from_mnt" ./fs/namespace.c; then

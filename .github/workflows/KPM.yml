@@ -250,27 +250,6 @@ jobs:
             echo "ERROR: SUSFS Kconfig entry not found, SUSFS patch is incomplete."
             exit 1
           fi
-          # Compat fix: some SUSFS patch branches add callers in stat/statfs/proc-fd,
-          # but miss these mount helper definitions in fs/namespace.c.
-          if ! grep -q "susfs_get_non_sus_mnt_id_from_mnt" ./fs/namespace.c; then
-            cat >> ./fs/namespace.c <<'EOF'
-
-#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-int susfs_get_non_sus_mnt_id_from_mnt(struct mount *mnt)
-{
-	return mnt ? mnt->mnt_id : 0;
-}
-
-struct vfsmount *susfs_get_non_sus_vfsmnt_from_vfsmnt(struct vfsmount *mnt)
-{
-	return mnt;
-}
-#endif /* CONFIG_KSU_SUSFS_SUS_MOUNT */
-EOF
-          fi
-
-          grep -n "susfs_get_non_sus_mnt_id_from_mnt" ./fs/namespace.c || true
-          grep -n "susfs_get_non_sus_vfsmnt_from_vfsmnt" ./fs/namespace.c || true
           # Unicode_bypass_Fix
           cp ../kernel_patches/common/unicode_bypass_fix_6.1-.patch ./
           patch -p1 -F 3 < unicode_bypass_fix_6.1-.patch

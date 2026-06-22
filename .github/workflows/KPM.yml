@@ -220,7 +220,7 @@ jobs:
             rm -rf "./drivers/kernelsu"
           fi
           # Apply new KernelSU patches
-          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s main
+          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s dev
           
       - name: 😋 Setup KSU SUSFS
         env: 
@@ -238,6 +238,38 @@ jobs:
           cp ../susfs4ksu/kernel_patches/fs/* ./fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
           patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch
+          # Make sure SUSFS core is actually compiled
+          if [ ! -f "./fs/susfs.c" ]; then
+            echo "ERROR: ./fs/susfs.c not found, SUSFS patch is incomplete."
+            exit 1
+          fi
+          if ! grep -q "susfs.o" ./fs/Makefile; then
+            echo 'obj-$(CONFIG_KSU_SUSFS) += susfs.o' >> ./fs/Makefile
+          fi
+          # Do not require fs/Kconfig to contain KSU_SUSFS.
+          # Some KernelSU/SUSFS branches define these options under KernelSU/drivers instead.
+          grep -R "config KSU_SUSFS" -n ./KernelSU ./drivers ./fs ./kernel 2>/dev/null || true
+          # Compat fix: some SUSFS patch branches add callers in stat/statfs/proc-fd,
+          # but miss these mount helper definitions in fs/namespace.c.
+          if ! grep -q "susfs_get_non_sus_mnt_id_from_mnt" ./fs/namespace.c; then
+            cat >> ./fs/namespace.c <<'EOF'
+
+          #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+          int susfs_get_non_sus_mnt_id_from_mnt(struct mount *mnt)
+          {
+          	return mnt ? mnt->mnt_id : 0;
+          }
+
+          struct vfsmount *susfs_get_non_sus_vfsmnt_from_vfsmnt(struct vfsmount *mnt)
+          {
+          	return mnt;
+          }
+          #endif /* CONFIG_KSU_SUSFS_SUS_MOUNT */
+          EOF
+          fi
+
+          grep -n "susfs_get_non_sus_mnt_id_from_mnt" ./fs/namespace.c || true
+          grep -n "susfs_get_non_sus_vfsmnt_from_vfsmnt" ./fs/namespace.c || true
           # Unicode_bypass_Fix
           cp ../kernel_patches/common/unicode_bypass_fix_6.1-.patch ./
           patch -p1 -F 3 < unicode_bypass_fix_6.1-.patch
@@ -302,6 +334,11 @@ jobs:
             ./scripts/kconfig/merge_config.sh -m -r -O "${{ env.OUT_DIR }}" \
               "${{ env.OUT_DIR }}/.config" "${FRAGMENTS[@]}"
             make ${{ env.ARGS }} olddefconfig
+          fi
+
+          if [ -f "${{ env.WORKSPACE }}/susfs.config" ]; then
+            grep -q '^CONFIG_KSU_SUSFS=y' "${{ env.OUT_DIR }}/.config" || { echo "ERROR: CONFIG_KSU_SUSFS is not enabled."; exit 1; }
+            grep -q '^CONFIG_KSU_SUSFS_SUS_MOUNT=y' "${{ env.OUT_DIR }}/.config" || { echo "ERROR: CONFIG_KSU_SUSFS_SUS_MOUNT is not enabled."; exit 1; }
           fi
 
           make ${{ env.ARGS }} Image dtbs
